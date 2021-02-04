@@ -1,0 +1,14 @@
+# vim files
+*.swp
+*.swo
+
+# python environment
+.env/
+.envrc
+
+# python caches
+__pycache__/
+.mypy_cache/
+
+# testing coverage reports
+.coverage
