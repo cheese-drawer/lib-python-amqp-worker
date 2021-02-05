@@ -12,3 +12,7 @@ __pycache__/
 
 # testing coverage reports
 .coverage
+
+# build process side-effects
+amqp_worker.egg-info/
+build/

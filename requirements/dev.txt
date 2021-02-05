@@ -1,4 +1,5 @@
 autopep8>=1.5.4
+mypy>=0.800,<0.810
 pycodestyle>=2.6.0
 pydocstyle>=5.1.1
 pylint>=2.6.0
