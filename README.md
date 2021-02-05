@@ -4,11 +4,13 @@ A simple wrapper on [mosquito/aio-pika](https://github.com/mosquito/aio-pika) th
 
 ## Installation
 
-Install with `pip` from `main` on this repo:
+Install with `pip` from releases on this repo. For example, you can install version 0.1.0 with the following command:
 
 ```
-$ pip install git+https://github.com/cheese-drawer/lib-python-amqp-worker.git
+$ pip install https://github.com/cheese-drawer/lib-python-amqp-worker/releases/download/0.1.0/amqp_worker-0.1.0.tar.gz
 ```
+
+If looking for a different release version, just replace the two instances of `0.1.0` in the command with the version number you need.
 
 ## Usage
 
