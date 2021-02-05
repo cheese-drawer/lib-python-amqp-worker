@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setuptools.setup(
     name="amqp_worker",
-    version="0.1.0",
+    version="0.1.1",
     author="Andrew Chang-DeWitt",
     author_email="andrew@andrew-chang-dewitt.dev",
     description="Library for creating & managing simple AMQP workers using any of a few different patterns.",
@@ -13,6 +13,8 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url="https://github.com/cheese-drawer/lib-python-amqp-worker/",
     packages=setuptools.find_packages(),
+    package_data={
+        'amqp_worker': ['py.typed']},
     install_requires=[
         'aio-pika>=6.7.1,<7.0.0',
     ],
