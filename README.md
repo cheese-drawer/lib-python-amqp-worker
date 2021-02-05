@@ -27,7 +27,7 @@ Finally, the library includes a `ConnectionParameters` dataclass to help with de
 
 Putting it all together is fairly straightforward. Start by initializing a new worker, passing it your brokers connection parameters on init, then make some routes, and end by starring the worker in an asynchronous event loop:
 
-```
+```python
 # queue_worker.py
 
 import asyncio
@@ -44,7 +44,7 @@ connection_parameters = ConnectionParameters(
 worker = QueueWorker(connection_parameters)
 
 
-# define a "route" on the worker messages published to a queue with 
+# define a "route" on the worker messages published to a queue with
 # the name given to `route` will be handled by the decorated function
 @worker.route('a-queue')
 def handler(data: str) -> None:
@@ -55,15 +55,15 @@ def handler(data: str) -> None:
 def another_route(data: Dict[str, Any]) -> None:
     print(f'got data on another-route:\n{data}')
 
-# run worker by getting an event loop, starting up the worker in 
+# run worker by getting an event loop, starting up the worker in
 # the loop, then listen for messages in a run_forever loop
 loop = asyncio.get_event_loop()
 
-# QueueWorker.run returns a function that stops the worker, save it 
+# QueueWorker.run returns a function that stops the worker, save it
 # for later
 stop_worker = loop.run_until_complete(worker.run())
 
-# wrap run_forever in try block to catch KeyboardInterrupt to kill 
+# wrap run_forever in try block to catch KeyboardInterrupt to kill
 # the loop
 try:
     loop.run_forever()
@@ -74,7 +74,7 @@ except KeyboardInterrupt:
 
 To see it in action, first start a RabbitMQ broker (with Docker, for example: `docker run -itd rabbitmq`), then start the above `queue_worker.py` script in one terminal, then open another & send it some gzip-compressed, UTF8-encoded, json-serialzed data using any AMQP client, such as `pika`:
 
-```
+```python
 import gzip
 import json
 from typing import Any
@@ -107,7 +107,7 @@ That return value is the data that will be sent back in the response to the orig
 
 For an example, just copy the above `queue_worker.py` example & replace the following lines:
 
-```
+```python
 # rpc_worker.py
 ...
 
@@ -128,7 +128,7 @@ def handler(data: str) -> str:
 
 Again, to see it in action, start your broker (if it's not still running), run the `rpc_worker.py` script, & send it messages from another shell:
 
-```
+```python
 import gzip
 import json
 import uuid
