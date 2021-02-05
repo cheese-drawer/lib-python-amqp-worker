@@ -44,10 +44,8 @@ connection_parameters = ConnectionParameters(
 worker = QueueWorker(connection_parameters)
 
 
-# define a "route" on the worker
-# messages published to a queue with the
-# name given to `route` will be handled by
-# the decorated function
+# define a "route" on the worker messages published to a queue with 
+# the name given to `route` will be handled by the decorated function
 @worker.route('a-queue')
 def handler(data: str) -> None:
     print(f'data received {data}')
@@ -57,18 +55,16 @@ def handler(data: str) -> None:
 def another_route(data: Dict[str, Any]) -> None:
     print(f'got data on another-route:\n{data}')
 
-# run worker by getting an event loop,
-# starting up the worker in the loop,
-# then listen for messages in a run_forever
-# loop
+# run worker by getting an event loop, starting up the worker in 
+# the loop, then listen for messages in a run_forever loop
 loop = asyncio.get_event_loop()
 
-# QueueWorker.run returns a function that
-# stops the worker, save it for later
+# QueueWorker.run returns a function that stops the worker, save it 
+# for later
 stop_worker = loop.run_until_complete(worker.run())
 
-# wrap run_forever in try block to catch
-# KeyboardInterrupt to kill the loop
+# wrap run_forever in try block to catch KeyboardInterrupt to kill 
+# the loop
 try:
     loop.run_forever()
 except KeyboardInterrupt:
