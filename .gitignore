@@ -16,3 +16,4 @@ __pycache__/
 # build process side-effects
 amqp_worker.egg-info/
 build/
+dist/
