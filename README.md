@@ -101,7 +101,7 @@ channel.basic_publish(
 
 In this example, you'll see the terminal running `queue_worker.py` print 'data received a test message' to stdout.
 
-### class `amqp_worker.RPCWorker`
+### Example: `RPCWorker`
 
 Using an `RPCWorker` is almost exactly the same.
 Just initialize an `RPCWorker` exactly the same way as a `QueueWorker`, then define a route, this time with a handler that returns a result.
