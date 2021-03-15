@@ -1,10 +1,61 @@
 import gzip
-from typing import Any
+from json import JSONEncoder
+from typing import Any, Callable, Optional
 
-from .response import Response, ErrResponse
+from .response import Response
 
 
-def serialize(serializer: Any, data: Response) -> bytes:
+def _to_json(
+    serializer: Any,
+    data: Response,
+    default: Optional[Callable[[JSONEncoder, Any], Any]] = None
+) -> Any:
+    # first try encoding using normal json encoding
+    try:
+        return serializer.dumps(
+            data,
+            ensure_ascii=False,
+        )
+
+    except TypeError:
+        # pass here to move on to the next try block
+        # allows cleaner code by not nesting try/except
+        # blocks unnecessarily
+        pass
+
+    # then try using a user provided default method
+    if default is not None:
+        try:
+            return serializer.dumps(
+                vars(data),
+                ensure_ascii=False,
+                default=default,
+            )
+
+        except TypeError:
+            pass
+
+    # finally, fall back to string representation of the
+    # object using `repr()`
+    try:
+        return serializer.dumps(
+            vars(data),
+            ensure_ascii=False,
+            default=repr,
+        )
+
+    except TypeError as err:
+        # if non of the above try blocks worked, raise
+        # a specific TypeError
+        raise TypeError(
+            'The Route\'s response is not JSON serializable'
+        ) from err
+
+
+def serialize(
+    serializer: Any, data: Response,
+    default: Optional[Callable[[JSONEncoder, Any], Any]] = None
+) -> bytes:
     """
     Serialize the given data with the given serialization module.
 
@@ -26,26 +77,7 @@ def serialize(serializer: Any, data: Response) -> bytes:
     After serializing the data to json, it is then encoded as UTF8 &
     compressed using gzip.
     """
-    try:
-        as_json = serializer.dumps(
-            data,
-            ensure_ascii=False,
-        )
-    except TypeError as err:
-        err_msg = err.args[0]
-        if 'not JSON serializable' in err_msg:
-            try:
-                as_json = serializer.dumps(
-                    vars(data),
-                    ensure_ascii=False,
-                    default=repr,
-                )
-            except TypeError:
-                raise TypeError(
-                    'The Route\'s response is not JSON serializable'
-                ) from err
-
-    return gzip.compress(as_json.encode('UTF8'))
+    return gzip.compress(_to_json(serializer, data, default).encode('UTF8'))
 
 
 def deserialize(data: bytes) -> str:
