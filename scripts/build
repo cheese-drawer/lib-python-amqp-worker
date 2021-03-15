@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+
+# SET PWD TO DIRNAME OF THIS SCRIPT
+# this script should always be located next to
+# docker-compose.yml & the test_runner package
+# directory (containing python env & tests)
+current_dir=`dirname "$0"`
+cd $current_dir
+# Only use the following line if needing to enable
+# a python environment
+cd ..
+eval "$(direnv export bash)"
+
+prefix="dist/db_wrapper-"
+_current_version_raw=`rg version setup.py`
+_current_version_prefix_trimmed=${_current_version_raw#"    version=\""}
+current_version=${_current_version_prefix_trimmed%"\","}
+
+# ../dist/db_wrapper-0.1.0a0-py3-none-any.whl
+# ../dist/db_wrapper-0.1.0a0.tar.gz
+
+echo "Starting build script..."
+echo ""
+echo "Will build as version $current_version"
+
+for file in "dist"/*; do
+    file_version_and_suffix=${file#"$prefix"}
+    if [[ $file_version_and_suffix == "$current_version.tar.gz" ]]; then
+        echo "Found match: $file == $current_version"
+        version_already_built=1
+    fi
+done
+
+if [ $version_already_built ]; then
+    echo ""
+    echo "Version specified in ./app-version already exists. Update version"
+    echo "& run again, or if you want to override an already built version,"
+    echo "run this script again, passing the override argument:"
+    echo "./scripts/build override"
+
+    exit 1
+fi
+
+echo ""
+python -m build
