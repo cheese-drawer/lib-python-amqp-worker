@@ -15,7 +15,6 @@ from .connection import ConnectionParameters
 from .response import Response
 from .serializer import (
     serialize,
-    deserialize,
     JSONEncoderProtocol,
     ResponseEncoder
 )
