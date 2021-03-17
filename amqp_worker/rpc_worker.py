@@ -123,9 +123,6 @@ class RPCWorker(Worker):
         super().__init__(connection_params, name)
 
     async def _pre_start(self) -> Callable[[Route], Awaitable[None]]:
-        # pylint doesn't seem to understand that PATTERN here is
-        # a class variable & still accessible through `self`
-        # pylint: disable=no-member
         self._worker = await self._pattern_factory(self._channel)
 
         async def register(route: Route) -> None:
