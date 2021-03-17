@@ -18,16 +18,13 @@ from .response import Response, OkResponse, ErrResponse
 #
 
 
-# PENDS python 3.9 support in pylint
-# pylint: disable=unsubscriptable-object
 RouteHandler = Callable[[Any], Awaitable[Any]]
 
 
 class Route(TypedDict):
     """Defines a Route for aio_pika.RPC.register."""
 
-    # PENDS python 3.9 support in pylint
-    # pylint: disable=inherit-non-class
+    # PENDS TypedDict support in pylint
     # pylint: disable=too-few-public-methods
 
     path: str
@@ -47,12 +44,14 @@ class Worker:
     worker_name: str
 
     def __init__(
-            self,
-            connection_params: ConnectionParameters,
-            name: str):
+        self,
+        connection_params: ConnectionParameters,
+        name: str,
+    ) -> None:
         self._connection_params = connection_params
         self.worker_name = name
         self.logger = logging.getLogger(self.worker_name)
+        self._routes = []
 
     async def _pre_start(self) -> Callable[[Route], Awaitable[None]]:
         pass

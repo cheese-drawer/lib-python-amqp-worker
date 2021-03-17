@@ -1,0 +1,63 @@
+#!/usr/bin/env bash
+
+
+#
+# NAVIGATE TO CORRECT DIRECTORY
+#
+
+# start by going to script dir so all movements
+# from here are relative
+SCRIPT_DIR=`dirname $(realpath "$0")`
+cd $SCRIPT_DIR
+
+# go to app dir
+cd ..
+
+# enable app virtual environment
+eval "$(direnv export bash)"
+
+#
+# RUN LINTERS
+#
+
+function lint {
+    echo ""
+    echo "PYLINT"
+    pylint amqp_worker/*
+    lint_result=$?
+    echo ""
+}
+
+function code {
+    echo ""
+    echo "PYCODESTYLE"
+    pycodestyle amqp_worker/*
+    code_result=$?
+    echo ""
+}
+
+function doc {
+    echo ""
+    echo "PYDOCSTYLE"
+    pydocstyle amqp_worker/*
+    doc_result=$?
+    echo ""
+}
+
+lint
+if [ $lint_result != 0 ]; then
+    echo "Error in pylint, see above."
+    exit $lint_result
+fi
+
+code
+if [ $code_result != 0 ]; then
+    echo "Error in codestyle, see above."
+    exit $code_result
+fi
+
+doc
+if [ $doc_result != 0 ]; then
+    echo "Error in docstyle, see above."
+    exit $doc_result
+fi

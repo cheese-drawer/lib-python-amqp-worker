@@ -35,11 +35,11 @@ class JSONGzipMaster(Master):
     SERIALIZER = json
     CONTENT_TYPE = 'application/octet-stream'
 
-    serialize_encoder: JSONEncoderProtocol
+    json_encoder: JSONEncoderProtocol
 
     def __init__(self, channel: Channel) -> None:
         super().__init__(channel)
-        self.serialize_encoder = ResponseEncoder()
+        self.json_encoder = ResponseEncoder()
 
     def serialize(self, data: Response) -> bytes:
         """Serialize the data being sent in the message.
@@ -53,23 +53,20 @@ class JSONGzipMaster(Master):
         Defers to shared serialize function to handle serialization
         using the SERIALIZER specified as a class constant.
         """
-        return serialize(self.serialize_encoder, data)
+        return serialize(self.json_encoder, data)
 
     def deserialize(self, data: bytes) -> Any:
-        """Decompress incoming message, then defer to aio_pika.RPC."""
+        """Decompress incoming message, then defer to aio_pika.Master."""
         # Example at https://aio-pika.readthedocs.io/en/latest/patterns.html
         # doesn't bother with decoding from bytes to string or
-        # decoding json; apparently builtin `pickle` dependency
-        # handles all of that on it's own.
-        # FIXME: doesn't know how to handle errors in
-        # decompressing/deserializing
+        # decoding json
         return super().deserialize(gzip.decompress(data))
 
 
 PatternFactory = Callable[[Channel], JSONGzipMaster]
 
 
-def json_gzip_rpc_factory(channel: Channel) -> JSONGzipMaster:
+def json_gzip_queue_factory(channel: Channel) -> JSONGzipMaster:
     """
     Create an instance of JSONGzipMaster class.
 
@@ -111,9 +108,8 @@ class QueueWorker(Worker):
         self,
         connection_params: ConnectionParameters,
         name: str = 'QueueWorker',
-        pattern_factory: PatternFactory = json_gzip_rpc_factory,
+        pattern_factory: PatternFactory = json_gzip_queue_factory,
     ) -> None:
-        self._routes = []
         self._pattern_factory = pattern_factory
         super().__init__(connection_params, name)
 

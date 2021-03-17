@@ -33,8 +33,6 @@ class Response:
         self.success = success
 
 
-# PENDS python 3.9 support in pylint
-# pylint: disable=unsubscriptable-object
 OkResponseData = Union[str,
                        Dict[str, Any],
                        List[Any],
@@ -51,8 +49,6 @@ class OkResponse(Response):
     # correctly for mypy, ignoring pylint error about number of methods
     # pylint: disable=too-few-public-methods
 
-    # PENDS python 3.9 typing support in pylint
-    # pylint: disable=unsubscriptable-object
     success: Literal[True]
     data: OkResponseData
 
@@ -75,8 +71,6 @@ class ErrResponse(Response):
         'trace': str,
     })
 
-    # PENDS python 3.9 typing support in pylint
-    success: Literal[False]  # pylint: disable=unsubscriptable-object
     error: ErrorData
 
     def __init__(self, error: Exception) -> None:
