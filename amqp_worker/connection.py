@@ -33,8 +33,6 @@ async def _try_connect(
     host = connection_params.host
     port = connection_params.port
 
-    # PENDS python 3.9 support in pylint
-    # pylint: disable=unsubscriptable-object
     connection: Optional[Connection] = None
 
     LOGGER.info(f'Attempting to connect to broker at {host}:{port}...')
@@ -62,11 +60,10 @@ async def _try_connect(
     return connection
 
 
-# PENDS python 3.9 support in pylint
-# pylint: disable=unsubscriptable-object
 async def connect(
     connection_params: ConnectionParameters
 ) -> Tuple[str, int, Connection, Channel]:
+    """Attempt to connect to a RabbitMQ broker with given parameters."""
     host = connection_params.host
     port = connection_params.port
 

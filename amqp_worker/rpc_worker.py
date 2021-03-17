@@ -5,17 +5,25 @@ Powered by aio-pika.
 
 from __future__ import annotations
 import json
-from typing import (cast,
-                    Any,
-                    Awaitable,
-                    Callable,
-                    List)
+from typing import (
+    cast,
+    Any,
+    Awaitable,
+    Callable,
+    List,
+)
 
 from aio_pika.patterns import RPC
+from aio_pika.channel import Channel
 
 from .connection import ConnectionParameters
 from .response import Response, ErrResponse
-from .serializer import serialize, deserialize
+from .serializer import (
+    serialize,
+    deserialize,
+    JSONEncoderProtocol,
+    ResponseEncoder
+)
 from .worker_base import Worker, Route
 
 #
@@ -23,17 +31,29 @@ from .worker_base import Worker, Route
 #
 
 
-class CustomJSONGzipRPC(RPC):
+class JSONGzipRPC(RPC):
     """Extend RPC pattern from aio-pika.
 
     - Automates encoding as JSON & UTF8, then compresses messages with Gzip.
     - Specifies what type of data must be given in order to be serialized
     """
 
-    SERIALIZER = json
-    CONTENT_TYPE = 'application/octet-stream'
+    SERIALIZER = json  # pylint: disable=duplicate-code
+    CONTENT_TYPE = 'application/octet-stream'  # pylint: disable=duplicate-code
 
-    def serialize(self, data: Response) -> bytes:
+    json_encoder: JSONEncoderProtocol  # pylint: disable=duplicate-code
+
+    def __init__(
+        self,
+        channel: Channel
+    ) -> None:  # pylint: disable=duplicate-code
+        super().__init__(channel)  # pylint: disable=duplicate-code
+        self.json_encoder = ResponseEncoder()  # pylint: disable=duplicate-code
+
+    def serialize(
+        self,
+        data: Response
+    ) -> bytes:  # pylint: disable=duplicate-code
         """Serialize the data being sent in the message.
 
         Arguments:
@@ -45,7 +65,8 @@ class CustomJSONGzipRPC(RPC):
         Defers to shared serialize function to handle serialization
         using the SERIALIZER specified as a class constant.
         """
-        return serialize(self.SERIALIZER, data)
+        return serialize(
+            self.json_encoder, data)  # pylint: disable=duplicate-code
 
     def serialize_exception(self, exception: Exception) -> bytes:
         """Wrap exceptions thrown by aio_pika.RPC in an ErrResponse."""
@@ -55,11 +76,24 @@ class CustomJSONGzipRPC(RPC):
         """Decompress incoming message, then defer to aio_pika.RPC."""
         # Example at https://aio-pika.readthedocs.io/en/latest/patterns.html
         # doesn't bother with decoding from bytes to string or
-        # decoding json; apparently builtin `pickle` dependency
-        # handles all of that on it's own.
-        # FIXME: doesn't know how to handle errors in
-        # decompressing/deserializing
+        # decoding json
         return super().deserialize(deserialize(data))
+
+
+PatternFactory = Callable[[Channel], Awaitable[JSONGzipRPC]]
+
+
+async def json_gzip_rpc_factory(channel: Channel) -> JSONGzipRPC:
+    """
+    Create an instance of JSONGzipRPC class.
+
+    Used as default pattern factory in RPCWorker. Replace this method with a
+    custom one if you need to modify the pattern used by RPCWorker.
+    """
+    # NOTE: casting to JSONGzipRPC because inherited create method
+    # has signature returning RPC when class method on extended
+    # JSONGzipRPC returns instance of JSONGzipRPC
+    return cast(JSONGzipRPC, await JSONGzipRPC.create(channel))
 
 
 #
@@ -82,21 +116,17 @@ class RPCWorker(Worker):
     _worker: RPC
     _routes: List[Route]
 
-    # class constants
-    PATTERN = CustomJSONGzipRPC
-
     def __init__(
-            self,
-            connection_params: ConnectionParameters,
-            name: str = 'RPCWorker'):
-        self._routes = []
+        self,
+        connection_params: ConnectionParameters,
+        name: str = 'RPCWorker',
+        pattern_factory: PatternFactory = json_gzip_rpc_factory,
+    ) -> None:
+        self._pattern_factory = pattern_factory
         super().__init__(connection_params, name)
 
     async def _pre_start(self) -> Callable[[Route], Awaitable[None]]:
-        # pylint doesn't seem to understand that PATTERN here is
-        # a class variable & still accessible through `self`
-        # pylint: disable=no-member
-        self._worker = await self.PATTERN.create(self._channel)
+        self._worker = await self._pattern_factory(self._channel)
 
         async def register(route: Route) -> None:
             self.logger.info(

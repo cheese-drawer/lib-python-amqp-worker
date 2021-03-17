@@ -18,7 +18,7 @@ import pytest
 # installed, which shouldn't be necessary just to test; instead, run
 # tests with `python -m pytest` from root to resolve imports correctly
 # pylint: disable=import-error
-from amqp_worker.queue_worker import CustomJSONGzipMaster
+from amqp_worker.queue_worker import JSONGzipMaster
 from amqp_worker import ConnectionParameters, QueueWorker
 
 conn_params = pytest.mark.usefixtures('conn_params')
@@ -37,7 +37,7 @@ def publish(
     connection_and_channel: Tuple[Connection, Channel]
 ) -> Callable[[str, Any], Awaitable[Any]]:
     _, channel = connection_and_channel
-    master = CustomJSONGzipMaster(channel)
+    master = JSONGzipMaster(channel)
 
     def pub(queue: str, data: Message) -> Awaitable[Any]:
         return master.create_task(queue, kwargs=data)

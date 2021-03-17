@@ -10,7 +10,7 @@ fail-under=10.0
 
 # Add files or directories to the blacklist. They should be base names, not
 # paths.
-ignore=CVS
+ignore=CVS,py.typed
 
 # Add files or directories matching the regex patterns to the blacklist. The
 # regex matches against base names, not paths.
@@ -61,10 +61,10 @@ confidence=
 # no Warning level messages displayed, use "--disable=all --enable=classes
 # --disable=W".
 disable=logging-fstring-interpolation, # added this one, disagree with pylint's reasoning
-        print-statement,
+        # print-statement,
         parameter-unpacking,
         unpacking-in-except,
-        old-raise-syntax,
+        # old-raise-syntax,
         backtick,
         long-suffix,
         old-ne-operator,
@@ -126,18 +126,18 @@ disable=logging-fstring-interpolation, # added this one, disagree with pylint's 
         invalid-str-codec,
         sys-max-int,
         bad-python3-import,
-        deprecated-string-function,
-        deprecated-str-translate-call,
-        deprecated-itertools-function,
-        deprecated-types-field,
+        # deprecated-string-function,
+        # deprecated-str-translate-call,
+        # deprecated-itertools-function,
+        # deprecated-types-field,
         next-method-defined,
         dict-items-not-iterating,
         dict-keys-not-iterating,
         dict-values-not-iterating,
-        deprecated-operator-function,
-        deprecated-urllib-function,
+        # deprecated-operator-function,
+        # deprecated-urllib-function,
         xreadlines-attribute,
-        deprecated-sys-function,
+        # deprecated-sys-function,
         exception-escape,
         comprehension-escape
 
@@ -473,7 +473,7 @@ single-line-if-stmt=no
 [SIMILARITIES]
 
 # Ignore comments when computing similarities.
-ignore-comments=yes
+ignore-comments=no
 
 # Ignore docstrings when computing similarities.
 ignore-docstrings=yes

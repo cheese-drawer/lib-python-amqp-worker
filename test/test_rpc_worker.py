@@ -20,7 +20,7 @@ import pytest
 # installed, which shouldn't be necessary just to test; instead, run
 # tests with `python -m pytest` from root to resolve imports correctly
 # pylint: disable=import-error
-from amqp_worker.rpc_worker import CustomJSONGzipRPC
+from amqp_worker.rpc_worker import JSONGzipRPC
 from amqp_worker import ConnectionParameters, RPCWorker
 
 conn_params = pytest.mark.usefixtures('conn_params')
@@ -38,7 +38,7 @@ def rpc_request(
         queue: str,
         data: Optional[Dict[Hashable, Any]]
     ) -> Any:
-        rpc = await CustomJSONGzipRPC.create(channel)
+        rpc = await JSONGzipRPC.create(channel)
 
         response = await rpc.call(queue, kwargs=data)
 
