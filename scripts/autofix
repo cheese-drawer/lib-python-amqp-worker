@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+
+
+#
+# NAVIGATE TO CORRECT DIRECTORY
+#
+
+# start by going to script dir so all movements
+# from here are relative
+SCRIPT_DIR=`dirname $(realpath "$0")`
+cd $SCRIPT_DIR
+
+# go to app dir
+cd ..
+
+# enable app virtual environment
+eval "$(direnv export bash)"
+
+#
+# RUN AUTFIXER
+#
+
+echo "Applying PEP 8 fixes..."
+autopep8 --in-place -r amqp_worker test
+echo "Done."

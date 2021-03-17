@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+
+
+#
+# NAVIGATE TO CORRECT DIRECTORY
+#
+
+# start by going to script dir so all movements
+# from here are relative
+SCRIPT_DIR=`dirname $(realpath "$0")`
+cd $SCRIPT_DIR
+
+
+#
+# PARSE & RUN COMMANDS
+#
+
+# check if expansion of $1 is null
+# from: https://stackoverflow.com/a/6482403
+if [ -z $1 ]; then
+    echo 'A command must be given.'
+    exit 1
+fi
+
+function run {
+    $1 ${@:2}
+
+    exit $?
+}
+
+# first check hard-coded shortcuts
+if [[ $1 = "t" ]]; then
+    run ./test ${@:2}
+fi
+if [[ $1 = "d" ]]; then
+    run ./dev ${@:2}
+fi
+
+# otherwise, search for exact match to script name
+for file in ./*; do
+    file_name=${file#"./"}
+
+    if [[ $file_name = $1 ]]; then
+        run $file ${@:2}
+    fi
+done
