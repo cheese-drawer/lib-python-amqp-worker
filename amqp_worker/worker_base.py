@@ -42,12 +42,9 @@ class Worker:
     _connection_params: ConnectionParameters
     _channel: Channel
     _routes: List[Route]
-    # PENDS python 3.9 support in pylint
-    # pylint: disable=unsubscriptable-object
     _worker: Union[RPC, Master]
     logger: logging.Logger
     worker_name: str
-    PATTERN: Any
 
     def __init__(
             self,

@@ -5,17 +5,25 @@ Powered by aio-pika.
 
 from __future__ import annotations
 import json
-from typing import (cast,
-                    Any,
-                    Awaitable,
-                    Callable,
-                    List)
+from typing import (
+    cast,
+    Any,
+    Awaitable,
+    Callable,
+    List,
+)
 
 from aio_pika.patterns import RPC
+from aio_pika.channel import Channel
 
 from .connection import ConnectionParameters
 from .response import Response, ErrResponse
-from .serializer import serialize, deserialize
+from .serializer import (
+    serialize,
+    deserialize,
+    JSONEncoderProtocol,
+    ResponseEncoder
+)
 from .worker_base import Worker, Route
 
 #
@@ -23,7 +31,7 @@ from .worker_base import Worker, Route
 #
 
 
-class CustomJSONGzipRPC(RPC):
+class JSONGzipRPC(RPC):
     """Extend RPC pattern from aio-pika.
 
     - Automates encoding as JSON & UTF8, then compresses messages with Gzip.
@@ -32,6 +40,12 @@ class CustomJSONGzipRPC(RPC):
 
     SERIALIZER = json
     CONTENT_TYPE = 'application/octet-stream'
+
+    serialize_encoder: JSONEncoderProtocol
+
+    def __init__(self, channel: Channel) -> None:
+        super().__init__(channel)
+        self.serialize_encoder = ResponseEncoder()
 
     def serialize(self, data: Response) -> bytes:
         """Serialize the data being sent in the message.
@@ -45,7 +59,7 @@ class CustomJSONGzipRPC(RPC):
         Defers to shared serialize function to handle serialization
         using the SERIALIZER specified as a class constant.
         """
-        return serialize(self.SERIALIZER, data)
+        return serialize(self.serialize_encoder, data)
 
     def serialize_exception(self, exception: Exception) -> bytes:
         """Wrap exceptions thrown by aio_pika.RPC in an ErrResponse."""
@@ -60,6 +74,22 @@ class CustomJSONGzipRPC(RPC):
         # FIXME: doesn't know how to handle errors in
         # decompressing/deserializing
         return super().deserialize(deserialize(data))
+
+
+PatternFactory = Callable[[Channel], Awaitable[JSONGzipRPC]]
+
+
+async def json_gzip_rpc_factory(channel: Channel) -> JSONGzipRPC:
+    """
+    Create an instance of JSONGzipRPC class.
+
+    Used as default pattern factory in RPCWorker. Replace this method with a
+    custom one if you need to modify the pattern used by RPCWorker.
+    """
+    # NOTE: casting to JSONGzipRPC because inherited create method
+    # has signature returning RPC when class method on extended
+    # JSONGzipRPC returns instance of JSONGzipRPC
+    return cast(JSONGzipRPC, await JSONGzipRPC.create(channel))
 
 
 #
@@ -82,21 +112,21 @@ class RPCWorker(Worker):
     _worker: RPC
     _routes: List[Route]
 
-    # class constants
-    PATTERN = CustomJSONGzipRPC
-
     def __init__(
-            self,
-            connection_params: ConnectionParameters,
-            name: str = 'RPCWorker'):
+        self,
+        connection_params: ConnectionParameters,
+        name: str = 'RPCWorker',
+        pattern_factory: PatternFactory = json_gzip_rpc_factory,
+    ) -> None:
         self._routes = []
+        self._pattern_factory = pattern_factory
         super().__init__(connection_params, name)
 
     async def _pre_start(self) -> Callable[[Route], Awaitable[None]]:
         # pylint doesn't seem to understand that PATTERN here is
         # a class variable & still accessible through `self`
         # pylint: disable=no-member
-        self._worker = await self.PATTERN.create(self._channel)
+        self._worker = await self._pattern_factory(self._channel)
 
         async def register(route: Route) -> None:
             self.logger.info(
