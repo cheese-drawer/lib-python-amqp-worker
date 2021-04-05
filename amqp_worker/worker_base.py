@@ -11,6 +11,7 @@ from aio_pika.connection import Connection
 
 from .connection import connect, ConnectionParameters
 from .response import Response, OkResponse, ErrResponse
+from .serializer import ResponseEncoder
 
 
 #
@@ -38,6 +39,7 @@ class Worker:
     _connection: Connection
     _connection_params: ConnectionParameters
     _channel: Channel
+    _json_encoder: ResponseEncoder
     _routes: List[Route]
     _worker: Union[RPC, Master]
     logger: logging.Logger
@@ -47,11 +49,14 @@ class Worker:
         self,
         connection_params: ConnectionParameters,
         name: str,
+        json_encoder: ResponseEncoder,
     ) -> None:
         self._connection_params = connection_params
-        self.worker_name = name
-        self.logger = logging.getLogger(self.worker_name)
+        self._json_encoder = json_encoder
         self._routes = []
+        self.worker_name = name
+
+        self.logger = logging.getLogger(self.worker_name)
 
     async def _pre_start(self) -> Callable[[Route], Awaitable[None]]:
         pass
@@ -75,11 +80,11 @@ class Worker:
         await asyncio.gather(*[build_route(route) for route in self._routes])
 
         self.logger.info(
-            f'Worker waiting for tasks from {host}:{port}')
+            f'{self.worker_name} waiting for tasks from {host}:{port}.')
 
     async def _stop(self) -> None:
         """Defers to aio-pika.Connection's close method."""
-        self.logger.info('Worker stopping...')
+        self.logger.info(f'{self.worker_name} stopping...')
         # having mypy ignore the next line--calling close is necessary to
         # gracefully disconnect from rabbitmq broker, but aio_pika's
         # Connection.close method is untyped, throwing an "Call to untyped
@@ -118,9 +123,12 @@ class Worker:
                 # communicated clearly to the original Requester
                 except Exception as err:  # pylint: disable=broad-except
                     response = ErrResponse(err)
+                    self.logger.error('ERROR PROCESSING TASK:')
+                    self.logger.error(response)
 
-                self.logger.info(
-                    f'TASK COMPLETED {path}: {repr(response)}')
+                self.logger.info(f'TASK COMPLETED on {path}')
+                self.logger.debug('TASK RESPONSE:')
+                self.logger.debug(self._json_encoder.encode(response))
 
                 return response
 
@@ -146,7 +154,7 @@ class Worker:
         return decorate_route
 
     async def run(self) -> Callable[[], Awaitable[None]]:
-        """Start the RPC Worker.
+        """Start the Worker.
 
         Must be called inside an asyncio event loop, such as
         `run_until_complete(run())`.

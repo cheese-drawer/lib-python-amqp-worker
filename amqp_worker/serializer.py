@@ -46,10 +46,7 @@ class ResponseEncoder(JSONEncoder):
 
     def default(self, o: Any) -> JSONEncoderTypes:
         """Convert OkResponse & ErrResponse to dictionaries."""
-        if isinstance(o, OkResponse):
-            return o.__dict__
-
-        if isinstance(o, ErrResponse):
+        if isinstance(o, (OkResponse, ErrResponse)):
             return o.__dict__
 
         # NOTE: Casting as built-in JSONEncoder's default method
@@ -71,7 +68,7 @@ def serialize(
     compressed using gzip.
     """
     as_json = serializer.encode(data)
-    LOGGER.info(f'RESPONSE JSON: {as_json}')
+    LOGGER.debug(f'RESPONSE JSON: {as_json}')
 
     return gzip.compress(as_json.encode('UTF8'))
 
