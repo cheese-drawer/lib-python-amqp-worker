@@ -11,7 +11,7 @@ cd $current_dir
 cd ..
 eval "$(direnv export bash)"
 
-prefix="dist/db_wrapper-"
+prefix="dist/amqp_worker-"
 _current_version_raw=`rg version setup.py`
 _current_version_prefix_trimmed=${_current_version_raw#"    version=\""}
 current_version=${_current_version_prefix_trimmed%"\","}

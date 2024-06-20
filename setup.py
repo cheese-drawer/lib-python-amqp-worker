@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setuptools.setup(
     name="amqp_worker",
-    version="0.2.0",
+    version="0.3.0a",
     author="Andrew Chang-DeWitt",
     author_email="andrew@andrew-chang-dewitt.dev",
     description="Library for creating & managing simple AMQP workers using any of a few different patterns.",

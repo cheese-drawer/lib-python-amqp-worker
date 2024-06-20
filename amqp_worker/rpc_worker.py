@@ -121,9 +121,10 @@ class RPCWorker(Worker):
         connection_params: ConnectionParameters,
         name: str = 'RPCWorker',
         pattern_factory: PatternFactory = json_gzip_rpc_factory,
+        json_encoder: ResponseEncoder = ResponseEncoder(),
     ) -> None:
         self._pattern_factory = pattern_factory
-        super().__init__(connection_params, name)
+        super().__init__(connection_params, name, json_encoder)
 
     async def _pre_start(self) -> Callable[[Route], Awaitable[None]]:
         self._worker = await self._pattern_factory(self._channel)

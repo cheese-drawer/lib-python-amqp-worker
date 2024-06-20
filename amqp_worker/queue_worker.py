@@ -6,12 +6,14 @@ Powered by aio-pika.
 from __future__ import annotations
 import gzip
 import json
+import logging
 from typing import cast, Any, Awaitable, Callable, List
 
 from aio_pika.patterns import Master
 from aio_pika.channel import Channel
+from aio_pika.connection import Connection
 
-from .connection import ConnectionParameters
+from .connection import connect, ConnectionParameters
 from .response import Response
 from .serializer import (
     serialize,
@@ -85,8 +87,87 @@ def json_gzip_queue_factory(channel: Channel) -> JSONGzipMaster:
 #
 
 
-# class QueueProducer:
-#     pass
+class QueueProducer:
+    """Simplify creating a Queue producer.
+
+    Uses an overloaded version of aio-pika's Master pattern to add
+    automatic JSON serialization/de-serialization & Gzip
+    compression/decompression.
+
+    See https://aio-pika.readthedocs.io/en/latest/patterns.html#master-worker
+    for more.
+
+    Exposes a method, `publish`, for creating a given task & transmitting it
+    on the given queue.
+    """
+
+    # property types
+    _connection: Connection
+    _connection_params: ConnectionParameters
+    _channel: Channel
+    _json_encoder: ResponseEncoder
+    _worker: Master
+    logger: logging.Logger
+    worker_name: str
+
+    def __init__(
+        self,
+        connection_params: ConnectionParameters,
+        name: str = 'QueueProducer',
+        pattern_factory: PatternFactory = json_gzip_queue_factory,
+        json_encoder: ResponseEncoder = ResponseEncoder(),
+    ) -> None:
+        self._pattern_factory = pattern_factory
+
+        self._connection_params = connection_params
+        self._json_encoder = json_encoder
+        self.worker_name = name
+
+        self.logger = logging.getLogger(self.worker_name)
+
+    async def _start(
+            self,
+    ) -> None:
+        """Start the worker.
+
+        Handles initializing a connection & creating a channel,
+        then uses aio-pika's RPC.create to create a new worker,
+        & finally registers every route created by the user.
+        """
+        self.logger.info(f'Starting {self.worker_name}...')
+
+        host, port, self._connection, self._channel = await connect(
+            self._connection_params)
+        self._worker = self._pattern_factory(self._channel)
+
+        self.logger.info(
+            f'{self.worker_name} connected to {host}:{port} & ready to '
+            'publish tasks.')
+
+    async def _stop(self) -> None:
+        """Defers to aio-pika.Connection's close method."""
+        self.logger.info(f'{self.worker_name} stopping...')
+        # having mypy ignore the next line--calling close is necessary to
+        # gracefully disconnect from rabbitmq broker, but aio_pika's
+        # Connection.close method is untyped, throwing an "Call to untyped
+        # function "close" in typed context" error when not ignored in strict
+        # mode
+        await self._connection.close()  # type: ignore
+
+    async def publish(self, queue: str, task: Any) -> None:
+        """Publish message with given body to a given queue."""
+        self.logger.info(f'PUBLISHING TASK: {task}')
+        await self._worker.create_task(queue, task=task)
+
+    async def run(self) -> Callable[[], Awaitable[None]]:
+        """Start the Worker.
+
+        Must be called inside an asyncio event loop, such as
+        `run_until_complete(run())`.
+        """
+        await self._start()
+
+        return self._stop
 
 
 class QueueWorker(Worker):
@@ -109,9 +190,10 @@ class QueueWorker(Worker):
         connection_params: ConnectionParameters,
         name: str = 'QueueWorker',
         pattern_factory: PatternFactory = json_gzip_queue_factory,
+        json_encoder: ResponseEncoder = ResponseEncoder(),
     ) -> None:
         self._pattern_factory = pattern_factory
-        super().__init__(connection_params, name)
+        super().__init__(connection_params, name, json_encoder)
 
     async def _pre_start(self) -> Callable[[Route], Awaitable[None]]:
         self._worker = self._pattern_factory(self._channel)
@@ -123,7 +205,7 @@ class QueueWorker(Worker):
             await self._worker.create_worker(
                 route['path'],
                 # casting necessary because mypy gets a little confused about
-                # expected type for RPC.register
+                # expected type for Master.create_worker
                 cast(Callable[[Any], Any], route['handler']),
                 durable=True)
 
